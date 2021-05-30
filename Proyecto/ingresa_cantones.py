@@ -1,0 +1,57 @@
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.base import state_str
+
+# se importa la clase(s) del 
+# archivo genera_tablas
+from genera_tabla import Canton, Provincia
+
+# importación de librerías a utilizar como el csv para poder abrir el archivo a ingresar
+import csv
+# Es un módulo de la librería estándar de Python que incorpora funciones que devuelven objetos iterables
+import itertools
+
+# se importa información del archivo configuracion
+from configuracion import cadena_base_datos
+# se genera enlace al gestor de base de
+# datos
+# para el ejemplo se usa la base de datos
+# sqlite
+engine = create_engine(cadena_base_datos)
+
+# Este objeto de sesión es nuestro manejador de base de datos
+Session = sessionmaker(bind=engine)
+# Se crea un objeto session de tipo Session, mismo que va apermitir 
+# guardar, eliminar, actualizar, generar consultas en la base de datosrespecto a las entidades creadas.
+session = Session()
+
+# Se lee archivo CSV con csv.reader para luego convertirla en una lista para poder manejar el archivo por posiciones
+with open('../data/Listado-Instituciones-Educativas.csv', 'r', encoding="utf8") as File:
+    reader = list(csv.reader(File, delimiter='|', quotechar=',',
+                        quoting=csv.QUOTE_MINIMAL))
+    # Se realiza una consulta de la tabla Provincia para guardar los datos en una variable
+    data_provincia = session.query(Provincia).all() 
+    # Auxiliar para guardar los nombres para despues con un if comparar si se esta repitiendo los nombres
+    aux = []
+    # for para recorrer el csv y con el método interitertools.islice se le esta diciendo que cuando vaya a leer el archivo 
+    # la posiscion 1 no la tome en cuenta
+    for row in itertools.islice(reader, 1, None):
+        # if en donde se compara el nombre ya ingresado guardado en la variable aux con el nuevo nombre a ingresar 
+        # en donde 'not in' identifican con un 'True' o 'False' si se estan repitiendo los nombres
+        if row[5] not in aux:
+            # Con el .append se procede a guardar si el nombre evaluado es único
+            aux.append(row[5])
+            # for para recorrer los datos de la tabla Provincia para poder sacar el id de la tabla provincia y 
+            # poder ponerlo en la tabla Cantón en el atributo de la clave foránea establecida 
+            for provincia in data_provincia:
+                # if para comparar si existen datos en la posición del nombre de la provincia para proceder a sacar el 
+                # id de esa tabla y asignarlo a una variable 
+                if row[3] == provincia.nombre_provincia:
+                    id_provincia = provincia.id
+                    # Asigación de los datos en los atributos y posiciones correctas
+                    e = Canton(nombre_canton=row[5], codigo_division_canton=row[4], provincia_id=id_provincia)
+                    # Se guarda dicho objeto como registro en la base de datos.
+                    session.add(e)
+
+# Se confirma las transacciones
+session.commit()
