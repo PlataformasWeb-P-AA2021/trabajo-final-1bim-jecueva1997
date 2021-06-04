@@ -41,17 +41,12 @@ with open('../data/Listado-Instituciones-Educativas.csv', 'r', encoding="utf8") 
         if row[5] not in aux:
             # Con el .append se procede a guardar si el nombre evaluado es único
             aux.append(row[5])
-            # for para recorrer los datos de la tabla Provincia para poder sacar el id de la tabla provincia y 
-            # poder ponerlo en la tabla Cantón en el atributo de la clave foránea establecida 
-            for provincia in data_provincia:
-                # if para comparar si existen datos en la posición del nombre de la provincia para proceder a sacar el 
-                # id de esa tabla y asignarlo a una variable 
-                if row[3] == provincia.nombre_provincia:
-                    id_provincia = provincia.id
-                    # Asigación de los datos en los atributos y posiciones correctas
-                    e = Canton(nombre_canton=row[5], codigo_division_canton=row[4], provincia_id=id_provincia)
-                    # Se guarda dicho objeto como registro en la base de datos.
-                    session.add(e)
+            # Búsqueda del dato a guardar utilizando una consulta
+            data_provincia = session.query(Provincia).filter_by(nombre_provincia = row[3]).one() 
+            # Asigación de los datos en los atributos y posiciones correctas
+            e = Canton(nombre_canton=row[5], codigo_division_canton=row[4], provincia=data_provincia)
+            # Se guarda dicho objeto como registro en la base de datos.
+            session.add(e)
 
 # Se confirma las transacciones
 session.commit()
